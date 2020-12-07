@@ -69,6 +69,9 @@ public class MainController {
   private SurgeriesRepository surgeriesRepository;
   
   @Autowired
+  private Authentication auth;
+  
+  @Autowired
   ResourceLoader resourceLoader;
   
   Logger logger = LoggerFactory.getLogger(MainController.class);
@@ -118,6 +121,32 @@ public class MainController {
 	  return "saved";
 	  
   }
+  
+  //TODO debug
+  @PostMapping(path="/users/add")
+  public @ResponseBody boolean addUser (@RequestBody Users user) {
+	  
+	  user.setHashedUsername(auth.encrypt(user.getHashedUsername().toCharArray()));
+	  user.setHashedPassword(auth.encrypt(user.getHashedPassword().toCharArray()));
+	  
+	  usersRepository.save(user);
+    
+	  return true;
+    
+  }
+  
+  //TODO debug
+  //Posts answers to security questions, returns password unencrypted.
+  @PostMapping(path="/users/security-questions/{id}")
+  public @ResponseBody String securityAnswers (@RequestBody String[] answers, @PathVariable(name="id") Integer id) {
+	  
+	  String response = auth.authenticateUserByAnswers(id, answers);
+	  
+	  return response;
+    
+  }
+  
+
   
   /*
    * GET Endpoints
@@ -303,33 +332,21 @@ public class MainController {
 	  
   }
   
-  /*@GetMapping(value="/patients")
-  public @ResponseBody Surgeries[] getSurgeries(@PathVariable(name="id") Integer id) {
+  //TODO debug
+  //Initial query to get security questions
+  @GetMapping(path="/users/forgot/{id}")
+  public @ResponseBody String[] forgotPassword (@PathVariable(name="id") Integer id) {
 	  
-	  ArrayList<Integer> lookupId = new ArrayList<Integer>();
+	  String[] strArray = new String[3];
 	  
-	  lookupId.add(id);
+	  Users user = usersRepository.findById(id).get();
 	  
-	  Iterable<Medications> iter =  medicationsRepository.findAllById(lookupId);
+	  strArray[0] = user.getSecurityQuestion1();
+	  strArray[1] = user.getSecurityQuestion2();
+	  strArray[2] = user.getSecurityQuestion3();
 	  
-	  ArrayList<Medications> medsList = new ArrayList<Medications>();
-	  
-	  for (Medications med: iter) {
-		  
-		  medsList.add(med);
-		  
-	  }
-	  
-	  Medications[] medicationsArray = new Medications[medsList.size()];
-	  int counter = 0;
-	  for (Medications med: medsList) {
-		  medicationsArray[counter] = med;
-		  counter++;
-	  }
-	  
-	  
-	  return medicationsArray;
-	  
-  }*/
+	  return strArray;
+    
+  }
   
 }

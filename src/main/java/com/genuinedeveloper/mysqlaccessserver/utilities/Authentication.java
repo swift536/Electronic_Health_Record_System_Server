@@ -1,6 +1,8 @@
 package com.genuinedeveloper.mysqlaccessserver.utilities;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import javax.crypto.Cipher;
@@ -67,10 +69,8 @@ public class Authentication {
 	public Boolean headerAuthentication (char[] credentials) {
 		
 		String str = new String(credentials);
-		//Debug
-		//logger.info("authentication method credentials: " + str);
 		
-		boolean eval = false;
+		boolean returnValue = false;
 		int lengths[] = new int[3];
 		int length = 0;
 		char[][] creds = new char[3][];
@@ -80,63 +80,77 @@ public class Authentication {
 		try {
 			
 			for (int i=0; i<3; i++) {
+				
 				while (iterator1 <= credentials.length-1 && credentials[iterator1] != ':') {
+					
 					iterator1++;
+					
 					length++;
+					
 				}
+				
 				iterator1++;
+				
 				lengths[i] = length;
+				
 				length = 0;
+				
 			}
 			
 			creds[0] = new char[lengths[0]];
 			creds[1] = new char[lengths[1]];
 			creds[2] = new char[lengths[2]];
 			
+			//Converts single char array into id, username and password char arrays
 			for (int i=0; i<3; i++) {
+				
 				iterator1 = 0;
+				
 				char[] temp = new char[50];
+				
 				while (iterator2 <= credentials.length-1 && credentials[iterator2] != ':') {
+					
 					creds[i][iterator1] = credentials[iterator2];
+					
 					iterator2++;
+					
 					iterator1++;
+					
 				}
+				
 				iterator2++;
+				
 			}
 			
 			//null out sensitive information immediately after verification
 			for (int i=0; i<credentials.length; i++) {
+				
 				credentials[i] = ' ';
+				
 			}
 			
-			//Debug - logs to spring console
-			/*String testuserString = new String (creds[1]);
-			String testpassString = new String (creds[2]);
-			logger.info(testIdString + ", " + testuserString + ", " + testpassString);*/
-			String testIdString = new String (creds[0]);
-			Users user = repo.findById(Integer.parseInt(testIdString)).get();
+			String userId = new String (creds[0]);
+			Users user = repo.findById(Integer.parseInt(userId)).get();
 
-			/*String encryptedUsername = encrypt(creds[1]);
-			String encryptedPassword = encrypt(creds[2]);*/
-			
-			//Debugging - logs to spring console
-			/*String encryptedUsername = new String(creds[1]);
-			String encryptedPassword = new String (creds[2]);
-			logger.info("Given username: " + encryptedUsername);
-			logger.info("Given password: " + encryptedPassword);
-			logger.info("Retrieved username: " + user.getHashedUsername());
-			logger.info("Retrieved password: " + user.getHashedPassword());*/
-			
+			String encryptedUsername = encrypt(creds[1]);
+			String encryptedPassword = encrypt(creds[2]);
 			
 			//REMEMBER TO INCLUDE EXAMPLE USER WHICH WAS INSERTED CORRECTLY FOR HASHING
-			if (Arrays.equals(creds[1],user.getHashedUsername().toCharArray())
+			/*if (Arrays.equals(creds[1],user.getHashedUsername().toCharArray())
 					&& Arrays.equals(creds[2],user.getHashedPassword().toCharArray())) {
 				
 				eval = true;
 				
+			}*/
+			
+			if (encryptedUsername.equals(user.getHashedUsername())
+					&& encryptedPassword.equals(user.getHashedPassword())) {
+				
+				returnValue = true;
+				
 			}
 			
-			return eval;
+			return returnValue;
 			
 		} catch (Exception e) {
 			//Error
@@ -145,45 +159,108 @@ public class Authentication {
 		
 	}
 	
+	public String authenticateUserByAnswers (int id, String[] str) {
+		
+		String returnValue = null;
+		
+		Users user = repo.findById(id).get();
+		
+		if (str[0] == user.getSecurityAnswer1() &&
+				str[1] == user.getSecurityAnswer2() && 
+				str[2] == user.getSecurityAnswer3()) {
+			
+			returnValue = decrypt(user.getHashedUsername());
+			
+		}
+		
+		return returnValue;
+		
+	}
+	
 	//Encryption algorithm will reduce the input to 24 character encrypted c-strings
-	private String encrypt (char[] inputString) {
+	public String encrypt (char[] inputString) {
+		
 	    try {
+	    	
 	    	byte[] str = charToByteArray (inputString);
+	    	
 	    	Arrays.fill(inputString, ' ');
+	    	
 	        IvParameterSpec iv = new IvParameterSpec(initializationVector.getBytes("UTF-8"));
+	        
 	        SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
 	 
 	        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+	        
 	        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
 	 
-	        //byte[] encrypted = cipher.doFinal(str.getBytes());
 	        byte[] encrypted = cipher.doFinal(str);
+	        
 	        return Base64.encodeBase64String(encrypted);
+	        
 	    } catch (Exception ex) {
+	    	
 	        ex.printStackTrace();
+	        
 	    }
+	    
 	    return null;
+	    
+	}
+	
+	public String decrypt (String str) {
+		
+	    try {
+	    	
+	        IvParameterSpec iv = new IvParameterSpec(initializationVector.getBytes("UTF-8"));
+	        
+	        SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+	 
+	        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+	        
+	        cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);
+	        
+	        byte[] output = cipher.doFinal(Base64.decodeBase64(str));
+	 
+	        return new String(output);
+	        
+	    } catch (Exception ex) {
+	    	
+	        ex.printStackTrace();
+	        
+	    }
+	 
+	    return null;
+	    
 	}
 	
 	//Works for UTF-8 encoding at 1 byte per character
 	private byte[] charToByteArray (char[] input) {
+		
 		byte[] output = new byte[input.length];
 		
 		for (int i = 0; i<input.length; i++) {
+			
 			output[i] = (byte) input[i];
+			
 		}
 		
 		return output;
+		
 	}
 	
 	//Works for UTF-8 encoding at 1 byte per character
 	private char[] byteToCharArray (byte[] input) {
+		
 		char[] output = new char[input.length];
 		
 		for (int i = 0; i<input.length; i++) {
+			
 			output[i] = (char) input[i];
+			
 		}
 		
 		return output;
+		
 	}
 }
