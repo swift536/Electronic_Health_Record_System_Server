@@ -1,17 +1,11 @@
 package com.genuinedeveloper.mysqlaccessserver.utilities;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.genuinedeveloper.mysqlaccessserver.db_entities.Allergies;
-import com.genuinedeveloper.mysqlaccessserver.repositories.AllergiesRepository;
-import com.genuinedeveloper.mysqlaccessserver.repositories.PatientsRepository;
+import com.genuinedeveloper.mysqlaccessserver.db_entities.Medications;
+import com.genuinedeveloper.mysqlaccessserver.utilities.DatabaseLookup.Repo;
 
 @SpringBootTest
 class DatabaseLookupTest {
@@ -22,7 +16,9 @@ class DatabaseLookupTest {
 	@Test
 	void test() {
 		
-		lookup.test();
+		Medications[] meds = (Medications[]) lookup.getAllById(1, Repo.Medications);
+		
+		assert meds != null;
 
 	}
 

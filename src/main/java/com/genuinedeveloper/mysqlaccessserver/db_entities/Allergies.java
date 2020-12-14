@@ -13,9 +13,9 @@ public class Allergies extends com.genuinedeveloper.mysqlaccessserver.db_entitie
 	
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private Integer allergies_id;
-	
 	private Integer id;
+	
+	private Integer patients_id;
 	
 	private String name;
 	
@@ -30,22 +30,22 @@ public class Allergies extends com.genuinedeveloper.mysqlaccessserver.db_entitie
 		high
 	}
 
-	@Column (name = "allergy_id")
+	@Column (name = "id")
 	public Integer getAllergysId() {
-		return allergies_id;
+		return id;
 	}
 	
 	public void setAllergysId(Integer allergiesId) {
-		this.allergies_id = allergiesId;
+		this.id = allergiesId;
 	}
 	
-	@Column (name = "id")
+	@Column (name = "patients_id")
 	public Integer getId() {
-		return id;
+		return patients_id;
 	}
 
 	public void setId(Integer id) {
-		this.id = id;
+		this.patients_id = id;
 	}
 
 	@Column (name = "name")

@@ -7,34 +7,34 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 @Entity
-public class Surgeries {
+public class Surgeries extends com.genuinedeveloper.mysqlaccessserver.db_entities.Entity {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private Integer surgeries_id;
-	
 	private Integer id;
+	
+	private Integer patients_id;
 	
 	private String name;
 	
 	private String notes;
 
-	@Column (name = "surgeries_id")
-	public Integer getSurgeries_id() {
-		return surgeries_id;
-	}
-
-	public void setSurgeries_id(Integer surgeries_id) {
-		this.surgeries_id = surgeries_id;
-	}
-
 	@Column (name = "id")
-	public Integer getId() {
+	public Integer getSurgeries_id() {
 		return id;
 	}
 
+	public void setSurgeries_id(Integer surgeries_id) {
+		this.id = surgeries_id;
+	}
+
+	@Column (name = "patients_id")
+	public Integer getId() {
+		return patients_id;
+	}
+
 	public void setId(Integer id) {
-		this.id = id;
+		this.patients_id = id;
 	}
 
 	@Column (name = "name")

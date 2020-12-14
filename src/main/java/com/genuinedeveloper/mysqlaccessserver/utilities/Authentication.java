@@ -1,9 +1,6 @@
 package com.genuinedeveloper.mysqlaccessserver.utilities;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -19,10 +16,6 @@ import com.genuinedeveloper.mysqlaccessserver.db_entities.Users;
 import com.genuinedeveloper.mysqlaccessserver.repositories.UsersRepository;
 
 /*
- * For demonstration purposes the client application is shipped with a test id, username and password credential
- * already within the login page. The hashing is turned off to make the testing process easier for those
- * who wish to try the project
- * 
  * Looked into using Spring sessions via Oath, cookies and headers but ultimate
  * decided to go with simple header authentication. Maintained the method for
  * backend authentication for future deliberation.
@@ -47,7 +40,7 @@ public class Authentication {
 	private static final String key = "OpenEHRSTestKey1";
 	private static final String initializationVector = "Test123412341234";
 	
-	public String requestBodyAuthentication (UserCredentials creds) {
+	/*public String requestBodyAuthentication (UserCredentials creds) {
 		
 		String returnValue = "null";
 		Users user = repo.findById(creds.getId()).get();
@@ -61,7 +54,7 @@ public class Authentication {
 		
 		return returnValue;
 		
-	}
+	}*/
 	
 	
 	//credentials are from the "Authorization" header in the format id:username:password
@@ -159,21 +152,21 @@ public class Authentication {
 		
 	}
 	
-	public String authenticateUserByAnswers (int id, String[] str) {
+	public char[] authenticateUserByAnswers (int id, String[] str) {
 		
 		String returnValue = null;
 		
 		Users user = repo.findById(id).get();
 		
-		if (str[0] == user.getSecurityAnswer1() &&
-				str[1] == user.getSecurityAnswer2() && 
-				str[2] == user.getSecurityAnswer3()) {
+		if (str[0].equals(user.getSecurityAnswer1()) &&
+				str[1].equals(user.getSecurityAnswer2()) && 
+				str[2].equals(user.getSecurityAnswer3())) {
 			
 			returnValue = decrypt(user.getHashedUsername());
 			
 		}
 		
-		return returnValue;
+		return returnValue.toCharArray();
 		
 	}
 	
@@ -185,6 +178,38 @@ public class Authentication {
 	    	byte[] str = charToByteArray (inputString);
 	    	
 	    	Arrays.fill(inputString, ' ');
+	    	
+	        IvParameterSpec iv = new IvParameterSpec(initializationVector.getBytes("UTF-8"));
+	        
+	        SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+	 
+	        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+	        
+	        cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
+	 
+	        byte[] encrypted = cipher.doFinal(str);
+	        
+	        return Base64.encodeBase64String(encrypted);
+	        
+	    } catch (Exception ex) {
+	    	
+	        ex.printStackTrace();
+	        
+	    }
+	    
+	    return null;
+	    
+	}
+	
+	public String encrypt (String inputString) {
+		
+	    try {
+	    	
+	    	char[] inputArray = inputString.toCharArray();
+	    	
+	    	byte[] str = charToByteArray (inputArray);
+	    	
+	    	Arrays.fill(inputArray, ' ');
 	    	
 	        IvParameterSpec iv = new IvParameterSpec(initializationVector.getBytes("UTF-8"));
 	        

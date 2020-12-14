@@ -1,35 +1,14 @@
 package com.genuinedeveloper.mysqlaccessserver;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.net.URL;
-import java.sql.Date;
-import java.sql.Time;
-import java.util.ArrayList;
-import java.util.Optional;
-import java.util.function.Consumer;
-
-import javax.imageio.ImageIO;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Allergies;
@@ -37,316 +16,162 @@ import com.genuinedeveloper.mysqlaccessserver.db_entities.Conditions;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Medications;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Patients;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Records;
-import com.genuinedeveloper.mysqlaccessserver.db_entities.Surgeries;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Users;
-import com.genuinedeveloper.mysqlaccessserver.repositories.*;
-import com.genuinedeveloper.mysqlaccessserver.utilities.Authentication;
-import com.genuinedeveloper.mysqlaccessserver.utilities.DatabaseLookup;
+import com.genuinedeveloper.mysqlaccessserver.services.PatientServices;
+import com.genuinedeveloper.mysqlaccessserver.services.UserServices;
+
+/*
+ * REST endpoints on the server are precluded by an interceptor (RESTAuthenticationInterceptor.java)
+ * that handles authentication. Authentication is handled via sending the user credentials with 
+ * each request within the "Authentication" header of the HTTP request.
+ * 
+ * The endpoints defer to the services (PatientServices.java and UserServices.java) that then interface
+ * with the database class (DatabaseLookup.java) which handles requests for all entity types.
+ */
+
+/*TODO  Future development will look into including a controller class per entity and the addition of advanced
+searching/paging to improve performance client side (i.e. scrolling to bottom of current list on client application
+can make a request for the next page. PER STATELESS REQUIREMENT, THE CLIENT WILL HAVE TO MAINTAIN PAGE COUNT*/
+
+/*TODO Caching patient related information is somewhat irrelevent and wasteful because each patient should only
+ * be referenced once per significant period of time (1 day or more) but the entire Patient list might benefit from
+ * caching for more common characters ('J', 'M', 'S', 'C' and 'D' most common for first names)
+ */
 
 @Controller
-@RequestMapping(path="/request")
+@RequestMapping(path = "/request")
 public class MainController {
+
+	@Autowired
+	PatientServices patientServices;
+
+	@Autowired
+	UserServices userServices;
+
+	Logger logger = LoggerFactory.getLogger(MainController.class);
+
 	
-  @Autowired
-  private PatientsRepository patientsRepository;
-  
-  @Autowired
-  private AllergiesRepository allergiesRepository;
-  
-  @Autowired
-  private MedicationsRepository medicationsRepository;
-  
-  @Autowired
-  private RecordsRepository recordsRepository;
-  
-  @Autowired
-  private UsersRepository usersRepository;
-  
-  @Autowired
-  private ConditionsRepository conditionsRepository;
-  
-  @Autowired
-  private SurgeriesRepository surgeriesRepository;
-  
-  @Autowired
-  private Authentication auth;
-  
-  @Autowired
-  ResourceLoader resourceLoader;
-  
-  Logger logger = LoggerFactory.getLogger(MainController.class);
+	
+	/************************************************User Endpoints*******************************************************/
+	@PostMapping(path = "/login")
+	public @ResponseBody boolean login() {
 
-  /*
-   * Post Endpoints
-   */
-  @PostMapping(path="/login")
-  public @ResponseBody String login() {
-	  
-	  return "true";
-	  
-  }
-  
-  @PostMapping(path="/allergies")
-  public @ResponseBody String addNewAllergy (@RequestBody Allergies allergy) {
-	  
-	  allergiesRepository.save(allergy);
-	  
-	  return "saved";
-	  
-  }
-  
-  @PostMapping(path="/patients")
-  public @ResponseBody String addNewPatient (@RequestBody Patients patient) {
+		return true;
 
-    patientsRepository.save(patient);
-    
-    return patient.getDobDate().toString();
-    
-  }
-  
-  @PostMapping(path="/records")
-  public @ResponseBody String addNewRecord (@RequestBody Records record) {
-	  
-	  recordsRepository.save(record);
-	  
-	  return "saved";
-	  
-  }
-  
-  @PostMapping(path="/medications")
-  public @ResponseBody String addNewMedication (@RequestBody Medications medication) {
-	  
-	  medicationsRepository.save(medication);
-	  
-	  return "saved";
-	  
-  }
-  
-  //TODO debug
-  @PostMapping(path="/users/add")
-  public @ResponseBody boolean addUser (@RequestBody Users user) {
-	  
-	  user.setHashedUsername(auth.encrypt(user.getHashedUsername().toCharArray()));
-	  user.setHashedPassword(auth.encrypt(user.getHashedPassword().toCharArray()));
-	  
-	  usersRepository.save(user);
-    
-	  return true;
-    
-  }
-  
-  //TODO debug
-  //Posts answers to security questions, returns password unencrypted.
-  @PostMapping(path="/users/security-questions/{id}")
-  public @ResponseBody String securityAnswers (@RequestBody String[] answers, @PathVariable(name="id") Integer id) {
-	  
-	  String response = auth.authenticateUserByAnswers(id, answers);
-	  
-	  return response;
-    
-  }
-  
-
-  
-  /*
-   * GET Endpoints
-   */
-  @GetMapping(path="/records/{id}")
-  public @ResponseBody  Records[] getRecord (@PathVariable(name="id") Integer id) {
-
-	  ArrayList<Integer> lookupId = new ArrayList<Integer>();
-	  
-	  lookupId.add(id);
-	  
-	  Iterable<Records> iter =  recordsRepository.findAllById(lookupId);
-	  
-	  ArrayList<Records> recordsList = new ArrayList<Records>();
-	  
-	  for (Records record: iter) {
-		  
-		  recordsList.add(record);
-		  
-	  }
-	  
-	  Records[] recordsArray = new Records[recordsList.size()];
-	  
-	  int counter = 0;
-	  
-	  for (Records record: recordsList) {
-		  
-		  logger.info(record.toString());
-		  
-		  recordsArray[counter] = record;
-		  
-		  counter++;
-		  
-	  }
-	  
-	  return recordsArray;
-	  
-  }
-  
-  @GetMapping(path="/allergies/{id}")
-  public @ResponseBody Allergies[] getAllergies (@PathVariable(name="id") Integer id) {
-	  
-	  ArrayList<Integer> lookupId = new ArrayList<Integer>();
-	  
-	  lookupId.add(id);
-	  
-	  Iterable<Allergies> iter =  allergiesRepository.findAllById(lookupId);
-	  
-	  ArrayList<Allergies> allergiesList = new ArrayList<Allergies>();
-	  
-	  for (Allergies allergy: iter) {
-		  
-		  allergiesList.add(allergy);
-		  
-	  }
-	  
-	  Allergies[] allergiesArray = new Allergies[allergiesList.size()];
-	  
-	  int counter = 0;
-	  
-	  for (Allergies allergy: allergiesList) {
-		  
-		  allergiesArray[counter] = allergy;
-		  
-		  counter++;
-		  
-	  }
-	  
-	  return allergiesArray;
-	  
-  }
- 
-  
-  @GetMapping(path="/medications/{id}")
-  public @ResponseBody Medications[] getMedications (@PathVariable(name="id") Integer id) {
-	  
-	  ArrayList<Integer> lookupId = new ArrayList<Integer>();
-	  
-	  lookupId.add(id);
-	  
-	  Iterable<Medications> iter =  medicationsRepository.findAllById(lookupId);
-	  
-	  ArrayList<Medications> medsList = new ArrayList<Medications>();
-	  
-	  for (Medications med: iter) {
-		  
-		  medsList.add(med);
-		  
-	  }
-	  
-	  Medications[] medicationsArray = new Medications[medsList.size()];
-	  int counter = 0;
-	  for (Medications med: medsList) {
-		  medicationsArray[counter] = med;
-		  counter++;
-	  }
-	  
-	  
-	  return medicationsArray;
-	  
-  }
-  
-  @GetMapping(value="/patients")
-  public @ResponseBody Patients[] getPatients() {
-	  
-	  //DatabaseLookup lookup = new DatabaseLookup(new Patients());
-	  
-	  logger.info("Endpoint hit");
-	  
-	  Iterable<Patients> iterable = patientsRepository.findAll();
-	  ArrayList<Patients> patients = new ArrayList<Patients>();
-	  
-	  iterable.forEach((new Consumer<Patients>() {  
-
-		@Override
-		public void accept(Patients patient) {
-			
-			ClassLoader cl;
-			
-			URL url;
-
-			cl = getClass().getClassLoader();
-			
-			try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-					InputStream is = cl.getResourceAsStream("patient_images/" + patient.getImageUrl())) {
-				
-				if (is != null) {
-					
-					//patient.setImage(url.getPath());
-					BufferedImage bImage = ImageIO.read(is);
-				    ImageIO.write(bImage, "jpg", bos);
-					patient.setImage(bos.toByteArray());
-					patients.add(patient);
-					
-				}
-
-				
-			} catch (Exception e) {
-				
-				//try with resources will throw error if "is" is null
-				
-			}
-		}
+	}
+	
+	// Initial query to get security questions
+	@GetMapping(path = "/users/forgot/{id}")
+	public @ResponseBody String[] forgotPassword(@PathVariable(name = "id") Integer id) {
 		
-	  }));
-	  
-	  Patients[] patientsArray = new Patients[patients.size()];
-	  int counter = 0;
-	  for (Patients patient: patients) {
-		  patientsArray[counter] = patient;
-		  counter++;
-	  }
-			  
-    return patientsArray;
-  }
-  
-  @GetMapping(value="/conditions")
-  public @ResponseBody Conditions[] getConditions(@PathVariable(name="id") Integer id) {
-	  
-	  ArrayList<Integer> lookupId = new ArrayList<Integer>();
-	  
-	  lookupId.add(id);
-	  
-	  Iterable<Conditions> iter =  conditionsRepository.findAllById(lookupId);
-	  
-	  ArrayList<Conditions> condList = new ArrayList<Conditions>();
-	  
-	  for (Conditions cond: iter) {
-		  
-		  condList.add(cond);
-		  
-	  }
-	  
-	  Conditions[] conditionsArray = new Conditions[condList.size()];
-	  int counter = 0;
-	  for (Conditions cond: condList) {
-		  conditionsArray[counter] = cond;
-		  counter++;
-	  }
-	  
-	  
-	  return conditionsArray;
-	  
-  }
-  
-  //TODO debug
-  //Initial query to get security questions
-  @GetMapping(path="/users/forgot/{id}")
-  public @ResponseBody String[] forgotPassword (@PathVariable(name="id") Integer id) {
-	  
-	  String[] strArray = new String[3];
-	  
-	  Users user = usersRepository.findById(id).get();
-	  
-	  strArray[0] = user.getSecurityQuestion1();
-	  strArray[1] = user.getSecurityQuestion2();
-	  strArray[2] = user.getSecurityQuestion3();
-	  
-	  return strArray;
-    
-  }
-  
+		String[] response = userServices.forgotPassword(id);
+		
+		return response;
+
+	}
+	
+	// Posts answers to security questions, returns unencrypted password (maintains TLS encryption).
+	@PostMapping(path = "/users/security-questions/{id}")
+	public @ResponseBody char[] postSecurityAnswers(@RequestBody String[] answers, @PathVariable(name = "id") Integer id) {
+
+		char[] response = userServices.postSecurityAnswers(answers, id);
+		
+		return response;
+
+	}
+	
+	@PostMapping(path = "/users/add")
+	public @ResponseBody boolean addUser(@RequestBody Users user) {
+
+		boolean response = userServices.postUser(user);
+
+		return response;
+
+	}
+	
+	/************************************************POST Endpoints*******************************************************/
+	@PostMapping(path = "/allergies")
+	public @ResponseBody boolean postAllergy(@RequestBody Allergies allergy) {
+
+		boolean response = patientServices.postAllergy(allergy);
+
+		return response;
+
+	}
+
+	@PostMapping(path = "/patients")
+	public @ResponseBody boolean postPatient(@RequestBody Patients patient) {
+
+		boolean response = patientServices.postPatient(patient);
+
+		return response;
+		
+	}
+
+	@PostMapping(path = "/records")
+	public @ResponseBody boolean postRecord(@RequestBody Records record) {
+
+		boolean response = patientServices.postRecord(record);
+
+		return response;
+
+	}
+
+	@PostMapping(path = "/medications")
+	public @ResponseBody boolean postMedication(@RequestBody Medications medication) {
+
+		boolean response = patientServices.postMedication(medication);
+
+		return response;
+
+	}
+	
+	/************************************************GET Endpoints*******************************************************/
+	@GetMapping(path = "/records/{id}")
+	public @ResponseBody Records[] getRecords(@PathVariable(name = "id") Integer id) {
+
+		Records[] response = patientServices.getRecords(id);
+		
+		return response;
+
+	}
+
+	@GetMapping(path = "/allergies/{id}")
+	public @ResponseBody Allergies[] getAllergies(@PathVariable(name = "id") Integer id) {
+
+		Allergies[] response = patientServices.getAllergies(id);
+		
+		return response;
+
+	}
+
+	@GetMapping(path = "/medications/{id}")
+	public @ResponseBody Medications[] getMedications(@PathVariable(name = "id") Integer id) {
+
+		Medications[] response = patientServices.getMedications(id);
+		
+		return response;
+
+	}
+
+	@GetMapping(value = "/patients")
+	public @ResponseBody Patients[] getPatients() {
+		
+		Patients[] response = patientServices.getPatients();
+		
+		return response;
+		
+	}
+
+	@GetMapping(value = "/conditions")
+	public @ResponseBody Conditions[] getConditions(@PathVariable(name = "id") Integer id) {
+
+		Conditions[] response = patientServices.getConditions(id);
+		
+		return response;
+
+	}
+
+
+
 }

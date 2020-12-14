@@ -9,13 +9,13 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 @Entity
-public class Conditions {
+public class Conditions extends com.genuinedeveloper.mysqlaccessserver.db_entities.Entity{
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private Integer conditions_id;
-	
 	private Integer id;
+	
+	private Integer patients_id;
 	
 	private String name;
 	
@@ -28,22 +28,22 @@ public class Conditions {
 		low, medium, high
 	}
 
-	@Column (name = "conditions_id")
-	public Integer getConditions_id() {
-		return conditions_id;
-	}
-
-	public void setConditions_id(Integer conditions_id) {
-		this.conditions_id = conditions_id;
-	}
-
 	@Column (name = "id")
-	public Integer getId() {
+	public Integer getConditions_id() {
 		return id;
 	}
 
+	public void setConditions_id(Integer conditions_id) {
+		this.id = conditions_id;
+	}
+
+	@Column (name = "patients_id")
+	public Integer getId() {
+		return patients_id;
+	}
+
 	public void setId(Integer id) {
-		this.id = id;
+		this.patients_id = id;
 	}
 
 	@Column (name = "name")

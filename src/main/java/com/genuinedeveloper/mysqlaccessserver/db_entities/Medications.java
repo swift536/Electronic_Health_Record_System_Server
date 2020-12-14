@@ -15,9 +15,9 @@ public class Medications extends com.genuinedeveloper.mysqlaccessserver.db_entit
 	
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private Integer medications_id;
-	
 	private Integer id;
+	
+	private Integer patients_id;
 	
 	private String name;
 	
@@ -59,22 +59,22 @@ public class Medications extends com.genuinedeveloper.mysqlaccessserver.db_entit
 		needed
 	}
 
-	@Column (name = "medications_id")
-	public Integer getMedicationsId() {
-		return medications_id;
-	}
-
-	public void setMedicationsId(Integer medicationsId) {
-		this.medications_id = medicationsId;
-	}
-	
 	@Column (name = "id")
-	public Integer getId() {
+	public Integer getMedicationsId() {
 		return id;
 	}
 
+	public void setMedicationsId(Integer medicationsId) {
+		this.id = medicationsId;
+	}
+	
+	@Column (name = "patients_id")
+	public Integer getId() {
+		return patients_id;
+	}
+
 	public void setId(Integer id) {
-		this.id = id;
+		this.patients_id = id;
 	}
 
 	@Column (name = "name")

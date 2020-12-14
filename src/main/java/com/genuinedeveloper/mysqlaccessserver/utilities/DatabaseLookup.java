@@ -1,34 +1,26 @@
 package com.genuinedeveloper.mysqlaccessserver.utilities;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-
-import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Repository;
 
 import com.genuinedeveloper.mysqlaccessserver.MainController;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Allergies;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Conditions;
+import com.genuinedeveloper.mysqlaccessserver.db_entities.Entity;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Medications;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Patients;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Records;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.Users;
 import com.genuinedeveloper.mysqlaccessserver.repositories.AllergiesRepository;
+import com.genuinedeveloper.mysqlaccessserver.repositories.ConditionsRepository;
 import com.genuinedeveloper.mysqlaccessserver.repositories.MedicationsRepository;
-import com.genuinedeveloper.mysqlaccessserver.repositories.PatientsRepository;
 import com.genuinedeveloper.mysqlaccessserver.repositories.RecordsRepository;
-import com.genuinedeveloper.mysqlaccessserver.repositories.UsersRepository;
 
 @Component
 public class DatabaseLookup {
@@ -43,7 +35,6 @@ public class DatabaseLookup {
 		iterator = 0;
 	}
 	
-	//Debugging
 	Logger logger = LoggerFactory.getLogger(MainController.class);
 	
 	public enum Repo {
@@ -59,7 +50,7 @@ public class DatabaseLookup {
 		return;
 	}
 	
-	public Object[] getAllById (int id, Repo repo) {
+	public Entity[] getAllById (int id, Repo repo) {
 		
 		ArrayList<Integer> lookupId = new ArrayList<Integer>();
 		
@@ -69,37 +60,39 @@ public class DatabaseLookup {
 		
 		ArrayList itemList = null;
 		
+		Entity[] objectArray = null;
+		
 		switch (repo) {
 		
 			case Allergies:
-				iter =  repos.get(iterator).findAllById(lookupId);
-				itemList = new ArrayList<Allergies>();
 				iterator = 0;
+				iter =  ((AllergiesRepository) repos.get(iterator)).findAllByPatientId(id);
+				itemList = new ArrayList<Allergies>();
 				break;
 			case Conditions:
-				iter =  repos.get(iterator).findAllById(lookupId);
-				itemList = new ArrayList<Conditions>();
 				iterator = 1;
+				iter =  ((ConditionsRepository) repos.get(iterator)).findAllByPatientId(id);
+				itemList = new ArrayList<Conditions>();
 				break;
 			case Medications:
-				iter =  repos.get(iterator).findAllById(lookupId);
-				itemList = new ArrayList<Medications>();
 				iterator = 2;
+				iter =  ((MedicationsRepository) repos.get(iterator)).findAllByPatientId(id);
+				itemList = new ArrayList<Medications>();
 				break;
 			case Patients:
+				iterator = 3;
 				iter =  repos.get(iterator).findAllById(lookupId);
 				itemList = new ArrayList<Patients>();
-				iterator = 3;
 				break;
 			case Records:
-				iter =  repos.get(iterator).findAllById(lookupId);
-				itemList = new ArrayList<Records>();
 				iterator = 4;
+				iter =  ((RecordsRepository) repos.get(iterator)).findAllByPatientId(id);
+				itemList = new ArrayList<Records>();
 				break;
 			case Users:
+				iterator = 5;
 				iter =  repos.get(iterator).findAllById(lookupId);
 				itemList = new ArrayList<Users>();
-				iterator = 5;
 				break;
 				
 		}
@@ -110,7 +103,29 @@ public class DatabaseLookup {
 			  
 		}
 		  
-		Object[] objectArray = new Object[itemList.size()];
+		switch (repo) {
+		
+		case Allergies:
+			objectArray = new Allergies[itemList.size()];
+			break;
+		case Conditions:
+			objectArray = new Conditions[itemList.size()];
+			break;
+		case Medications:
+			objectArray = new Medications[itemList.size()];
+			break;
+		case Patients:
+			objectArray = new Patients[itemList.size()];
+			break;
+		case Records:
+			objectArray = new Records[itemList.size()];
+			break;
+		case Users:
+			objectArray = new Users[itemList.size()];
+			break;
+			
+	}
+
 		  
 		int counter = 0;
 		  
@@ -118,34 +133,13 @@ public class DatabaseLookup {
 			  
 			logger.info(item.toString());
 			  
-			objectArray[counter] = item;
+			objectArray[counter] = (Entity) item;
 			  
 			counter++;
 			  
 		}
 		  
-		return objectArray;
-		
+		return objectArray;		
 	}
-	
-	/*public T[] getArrayPatientsWithinRange (int startIndex, int returnedAmount) {
-		
-		
-		//ArrayList<Integer> lookupId = new ArrayList<Integer>();
-		  
-		//lookupId.add(id);
-		  
-		//Iterable<T> iter =  repository.findAllById(lookupId);
-		
-		Pageable page = PageRequest.of(startIndex, returnedAmount);
-		logger.info(repository.getClass().toString());
-		ArrayList<T> recordsList =  (ArrayList<T>) ((PatientsRepository) repository).findFromTo(page);
-		  
-		@SuppressWarnings("unchecked")
-		T[] records = (T[]) recordsList.toArray();
-		  
-		return records;
-		
-	}*/
 	
 }

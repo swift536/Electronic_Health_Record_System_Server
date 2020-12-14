@@ -12,16 +12,12 @@ import javax.persistence.Transient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.genuinedeveloper.mysqlaccessserver.MainController;
 import com.genuinedeveloper.mysqlaccessserver.db_entities.db_sub_entitities.SOAPNote;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 @Entity
 public class Records extends com.genuinedeveloper.mysqlaccessserver.db_entities.Entity{
@@ -35,9 +31,9 @@ public class Records extends com.genuinedeveloper.mysqlaccessserver.db_entities.
 	
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private Integer record_id;
-	
 	private Integer id;
+	
+	private Integer patients_id;
 	
 	private Date date_date;
 	
@@ -45,22 +41,22 @@ public class Records extends com.genuinedeveloper.mysqlaccessserver.db_entities.
 	
 	private String soap_note;
 	
-	@Column (name = "record_id")
+	@Column (name = "id")
 	public Integer getRecordId() {
-		return record_id;
+		return id;
 	}
 	
 	public void setRecordId(Integer recordId) {
-		this.record_id = recordId;
+		this.id = recordId;
 	}
 	
-	@Column (name = "id")
+	@Column (name = "patients_id")
 	public Integer getId() {
-		return id;
+		return patients_id;
 	}
 
 	public void setId(Integer id) {
-		this.id = id;
+		this.patients_id = id;
 	}
 
 	@Column (name = "date_date")
